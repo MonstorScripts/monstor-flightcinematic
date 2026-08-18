@@ -49,10 +49,24 @@ function SetFlightTransit(playerId, inTransit)
     end)
 end
 
-function ResolveDetachTargets(attachedServerIds)
-    if type(attachedServerIds) ~= 'table' or #attachedServerIds == 0 then return nil end
+function ResolveDetachTargets(playerId, attachedServerIds)
+    if type(attachedServerIds) ~= 'table' then return nil end
 
-    return attachedServerIds
+    local targets = {}
+    local targetCount = 0
+
+    for index = 1, math.min(#attachedServerIds, 8) do
+        local targetId = attachedServerIds[index]
+
+        if type(targetId) == 'number' and targetId ~= playerId and GetPlayerName(targetId) then
+            targetCount = targetCount + 1
+            targets[targetCount] = targetId
+        end
+    end
+
+    if targetCount == 0 then return nil end
+
+    return targets
 end
 
 function IsAtDeparture(playerId, routeName)
@@ -196,7 +210,7 @@ lib.callback.register('monstor-flightcinematic:requestFlight', function(source, 
 
     SetFlightTransit(playerId, true)
 
-    local detachTargets = ResolveDetachTargets(attachedServerIds)
+    local detachTargets = ResolveDetachTargets(playerId, attachedServerIds)
 
     if detachTargets then
         lib.triggerClientEvent('monstor-flightcinematic:forceDetach', detachTargets, playerId)
