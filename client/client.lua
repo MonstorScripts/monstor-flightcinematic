@@ -1,6 +1,7 @@
 local CUTSCENE_CHARACTER_MODEL = 'MP_1'
 local LOAD_SCENE_TIMEOUT = 10000
 local spawnedPeds = {}
+local pendingPeds = {}
 local departurePoints = {}
 local isTravelling = false
 local isPlayerLoaded = false
@@ -246,33 +247,46 @@ function BuildTargetOptions(departure)
 end
 
 function SpawnDeparturePed(departureIndex)
-    if not isPlayerLoaded or spawnedPeds[departureIndex] then return end
+    if not isPlayerLoaded then return end
+    if spawnedPeds[departureIndex] or pendingPeds[departureIndex] then return end
 
     local departure = Config.Departures[departureIndex]
 
     if not departure then return end
 
-    local pedModel = joaat(departure.ped)
+    pendingPeds[departureIndex] = true
 
-    if not lib.requestModel(pedModel, 10000) then return end
+    CreateThread(function()
+        local pedModel = joaat(departure.ped)
 
-    local ped = CreatePed(4, pedModel, departure.coords.x, departure.coords.y, departure.coords.z, departure.coords.w, false, true)
-    SetModelAsNoLongerNeeded(pedModel)
+        if not lib.requestModel(pedModel, 10000) or not pendingPeds[departureIndex] then
+            pendingPeds[departureIndex] = nil
+            SetModelAsNoLongerNeeded(pedModel)
+            return
+        end
 
-    if not DoesEntityExist(ped) then return end
+        local ped = CreatePed(4, pedModel, departure.coords.x, departure.coords.y, departure.coords.z, departure.coords.w, false, true)
+        SetModelAsNoLongerNeeded(pedModel)
 
-    SetEntityInvincible(ped, true)
-    SetBlockingOfNonTemporaryEvents(ped, true)
-    FreezeEntityPosition(ped, true)
-    SetPedDefaultComponentVariation(ped)
-    SetPedDiesWhenInjured(ped, false)
-    SetPedCanRagdollFromPlayerImpact(ped, false)
+        pendingPeds[departureIndex] = nil
 
-    spawnedPeds[departureIndex] = ped
-    Bridge.AddTargetEntity(ped, BuildTargetOptions(departure))
+        if not DoesEntityExist(ped) then return end
+
+        SetEntityInvincible(ped, true)
+        SetBlockingOfNonTemporaryEvents(ped, true)
+        FreezeEntityPosition(ped, true)
+        SetPedDefaultComponentVariation(ped)
+        SetPedDiesWhenInjured(ped, false)
+        SetPedCanRagdollFromPlayerImpact(ped, false)
+
+        spawnedPeds[departureIndex] = ped
+        Bridge.AddTargetEntity(ped, BuildTargetOptions(departure))
+    end)
 end
 
 function RemoveDeparturePed(departureIndex)
+    pendingPeds[departureIndex] = nil
+
     local ped = spawnedPeds[departureIndex]
 
     if not ped then return end
