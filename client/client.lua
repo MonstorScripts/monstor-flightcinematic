@@ -203,7 +203,7 @@ function StartFlight(routeName)
 
     isTravelling = true
 
-    local granted = lib.callback.await('monstor-flightcinematic:requestFlight', false, routeName)
+    local granted = lib.callback.await('monstor-flightcinematic:requestFlight', false, routeName, GetAttachedPlayerServerIds())
 
     if not granted then
         isTravelling = false

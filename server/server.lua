@@ -37,6 +37,12 @@ function SetFlightTransit(playerId, inTransit)
     end)
 end
 
+function ResolveDetachTargets(attachedServerIds)
+    if type(attachedServerIds) ~= 'table' or #attachedServerIds == 0 then return nil end
+
+    return attachedServerIds
+end
+
 function IsAtDeparture(playerId, routeName)
     local departures = routeDepartures[routeName]
 
@@ -140,7 +146,7 @@ function LogFlight(player, routeName, fare, confiscated, excessCash, note)
     })
 end
 
-lib.callback.register('monstor-flightcinematic:requestFlight', function(source, routeName)
+lib.callback.register('monstor-flightcinematic:requestFlight', function(source, routeName, attachedServerIds)
     local playerId = source
 
     if not CheckRequestCooldown(playerId) then return false end
@@ -173,7 +179,12 @@ lib.callback.register('monstor-flightcinematic:requestFlight', function(source, 
     end
 
     SetFlightTransit(playerId, true)
-    TriggerClientEvent('monstor-flightcinematic:forceDetach', -1, playerId)
+
+    local detachTargets = ResolveDetachTargets(attachedServerIds)
+
+    if detachTargets then
+        lib.triggerClientEvent('monstor-flightcinematic:forceDetach', detachTargets, playerId)
+    end
 
     if jobPerks and jobPerks.keepItems then
         Bridge.Notify(playerId, Bridge.Locale('flightcinematic.jobKeepsItems'), 'success')
