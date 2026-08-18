@@ -295,7 +295,7 @@ end
 
 RegisterNetEvent('monstor-flightcinematic:forceDetach', function(travellerServerId)
     if type(travellerServerId) ~= 'number' then return end
-    if travellerServerId == GetPlayerServerId(PlayerId()) then return end
+    if travellerServerId == cache.serverId then return end
 
     local travellerPed = GetPlayerPed(GetPlayerFromServerId(travellerServerId))
 
