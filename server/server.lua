@@ -1,8 +1,12 @@
 local flightTransit = {}
 local lastRequest = {}
 local routeDepartures = {}
+local boardingDistanceSquared = 64.0
 
 function BuildRouteDepartures()
+    local boardingDistance = Config.BoardingDistance or 8.0
+    boardingDistanceSquared = boardingDistance * boardingDistance
+
     for _, departure in ipairs(Config.Departures) do
         for _, routeName in ipairs(departure.routes) do
             routeDepartures[routeName] = routeDepartures[routeName] or {}
@@ -49,7 +53,11 @@ function IsAtDeparture(playerId, routeName)
     local playerCoords = GetEntityCoords(playerPed)
 
     for _, departureCoords in ipairs(departures) do
-        if #(playerCoords - departureCoords) <= (Config.BoardingDistance or 8.0) then
+        local deltaX = playerCoords.x - departureCoords.x
+        local deltaY = playerCoords.y - departureCoords.y
+        local deltaZ = playerCoords.z - departureCoords.z
+
+        if deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ <= boardingDistanceSquared then
             return true
         end
     end
