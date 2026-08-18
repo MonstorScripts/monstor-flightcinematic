@@ -11,6 +11,8 @@ Config.MaxCashAllowance = 10000
 
 Config.BoardingDistance = 8.0
 
+Config.AttachedScanDistance = 5.0
+
 Config.Jobs = {
     police = { keepItems = true, freeFare = true },
     doj = { keepItems = true, freeFare = true },
