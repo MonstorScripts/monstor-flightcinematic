@@ -1,4 +1,5 @@
 local flightTransit = {}
+local transitTokens = {}
 local lastRequest = {}
 local routeDepartures = {}
 local boardingDistanceSquared = 64.0
@@ -31,13 +32,20 @@ end
 function SetFlightTransit(playerId, inTransit)
     if not inTransit then
         flightTransit[playerId] = nil
+        transitTokens[playerId] = nil
         return
     end
 
+    local token = (transitTokens[playerId] or 0) + 1
+
     flightTransit[playerId] = true
+    transitTokens[playerId] = token
 
     SetTimeout(120000, function()
+        if transitTokens[playerId] ~= token then return end
+
         flightTransit[playerId] = nil
+        transitTokens[playerId] = nil
     end)
 end
 
@@ -218,6 +226,7 @@ AddEventHandler('playerDropped', function()
     local playerId = source
 
     flightTransit[playerId] = nil
+    transitTokens[playerId] = nil
     lastRequest[playerId] = nil
 end)
 
