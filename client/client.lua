@@ -1,7 +1,9 @@
 local CUTSCENE_CHARACTER_MODEL = 'MP_1'
 local LOAD_SCENE_TIMEOUT = 10000
 local spawnedPeds = {}
+local departurePoints = {}
 local isTravelling = false
+local isPlayerLoaded = false
 
 function ClearTravelScene()
     ClearFocus()
@@ -244,9 +246,11 @@ function BuildTargetOptions(departure)
 end
 
 function SpawnDeparturePed(departureIndex)
+    if not isPlayerLoaded or spawnedPeds[departureIndex] then return end
+
     local departure = Config.Departures[departureIndex]
 
-    if not departure or spawnedPeds[departureIndex] then return end
+    if not departure then return end
 
     local pedModel = joaat(departure.ped)
 
@@ -282,14 +286,34 @@ function RemoveDeparturePed(departureIndex)
 end
 
 function RemoveAllDeparturePeds()
-    for departureIndex in pairs(spawnedPeds) do
+    for departureIndex in ipairs(Config.Departures) do
         RemoveDeparturePed(departureIndex)
     end
 end
 
-function SpawnAllDeparturePeds()
-    for departureIndex in ipairs(Config.Departures) do
-        SpawnDeparturePed(departureIndex)
+function SpawnNearbyDeparturePeds()
+    for departureIndex, departurePoint in ipairs(departurePoints) do
+        if departurePoint.inside then
+            SpawnDeparturePed(departureIndex)
+        end
+    end
+end
+
+function CreateDeparturePoints()
+    if departurePoints[1] then return end
+
+    for departureIndex, departure in ipairs(Config.Departures) do
+        departurePoints[departureIndex] = lib.points.new({
+            coords = vector3(departure.coords.x, departure.coords.y, departure.coords.z),
+            distance = Config.PedSpawnDistance,
+            departureIndex = departureIndex,
+            onEnter = function(self)
+                SpawnDeparturePed(self.departureIndex)
+            end,
+            onExit = function(self)
+                RemoveDeparturePed(self.departureIndex)
+            end
+        })
     end
 end
 
@@ -307,12 +331,17 @@ RegisterNetEvent('monstor-flightcinematic:forceDetach', function(travellerServer
 end)
 
 bridgeCore:On('playerLoaded', function()
-    SpawnAllDeparturePeds()
+    isPlayerLoaded = true
+
+    CreateDeparturePoints()
+    SpawnNearbyDeparturePeds()
 end)
 
 bridgeCore:On('playerUnloaded', function()
-    RemoveAllDeparturePeds()
+    isPlayerLoaded = false
     isTravelling = false
+
+    RemoveAllDeparturePeds()
 end)
 
 AddEventHandler('onResourceStop', function(resourceName)
@@ -322,5 +351,8 @@ AddEventHandler('onResourceStop', function(resourceName)
 end)
 
 OnBridgeReady(function()
-    SpawnAllDeparturePeds()
+    isPlayerLoaded = true
+
+    CreateDeparturePoints()
+    SpawnNearbyDeparturePeds()
 end)
